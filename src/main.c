@@ -52,7 +52,7 @@ void snake_draw(snake_t *snake){
 */
 
 /* const size_t screen_w, screen_h; */
-int frame_count = 0;
+unsigned int frame_count = 0;
 snake_t snake;
 point_t fruit;
 uint8_t prev_state = 0, prev_mouse_state = 0;

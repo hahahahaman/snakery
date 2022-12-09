@@ -1,0 +1,14 @@
+#+title: snakery
+
+* DONE collision with self
+* TODO portals
+* TODO undo
+* TODO make levels
+** DONE changing level logic
+** TODO reading maps
+*** TODO map array format
+*** TODO walls
+*** TODO head start position
+*** TODO body start positions
+* DONE start screen
+* TODO death screen

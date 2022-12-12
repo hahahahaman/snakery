@@ -381,30 +381,26 @@ void update () {
       /*** input ***/
       if (just_pressed & BUTTON_UP){
         if(snake.direction.y == 0 &&
-           (snake.length > 1 &&
-            wrap(snake.body[0].y-1, 20) != snake.body[1].y)){
+           (snake.length > 1 && snake.body[0].y-1 != snake.body[1].y)){
           snake.direction = (point_t){0,-1};
         }
       }
 
       if (just_pressed & BUTTON_DOWN) {
         if(snake.direction.y == 0 &&
-           (snake.length > 1 &&
-            wrap(snake.body[0].y+1, 20) != snake.body[1].y)){
+           (snake.length > 1 && snake.body[0].y+1 != snake.body[1].y)){
           snake.direction = (point_t){0,1};
         }
       }
       if (just_pressed & BUTTON_LEFT) {
         if(snake.direction.x == 0 &&
-           (snake.length > 1 &&
-            wrap(snake.body[0].x-1, 20) != snake.body[1].x)){
+           (snake.length > 1 && snake.body[0].x-1 != snake.body[1].x)){
           snake.direction = (point_t){-1, 0};
         }
       }
       if (just_pressed & BUTTON_RIGHT) {
         if(snake.direction.x == 0 &&
-           (snake.length > 1 &&
-            wrap(snake.body[0].x+1, 20) != snake.body[1].x)){
+           (snake.length > 1 && snake.body[0].x+1 != snake.body[1].x)){
           snake.direction = (point_t){1, 0};
         }
       }
@@ -436,6 +432,7 @@ void update () {
             basket.eaten[i] = 1;
           }
         }
+
 
         // body collision
         int head_body_collision = 0;
@@ -503,8 +500,20 @@ void update () {
         }
       }
 
+      uint8_t num_eaten = 0;
+      for(int i = 0; i < basket.n; i++) {
+        if(basket.eaten[i]) num_eaten++;
+      }
+      if(num_eaten == basket.n) {
+        level = 3;
+
+        free_fruit_basket(&basket);
+        free_snake(&snake);
+      }
+
     }
     else if (level == 3) {
+      text("press Z to undo", 10, 10);
     }
     else if (level == 4) {
     }

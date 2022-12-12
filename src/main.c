@@ -30,6 +30,12 @@ typedef struct {
 } level_t;
 
 typedef struct {
+  point_t *fruits;
+  uint8_t *eaten;
+  uint16_t n;
+} fruit_basket_t;
+
+typedef struct {
   uint8_t level;
   /* normal_snake_t snake; */
   uint8_t move_history[400];
@@ -45,6 +51,7 @@ const uint8_t fruit_sprite[16] = {
 
 unsigned int frame_count = 0;
 normal_snake_t snake;
+fruit_basket_t basket;
 point_t level0_fruit;
 
 uint8_t prev_key_state = 0, prev_mouse_state = 0, has_moved = 0, paused = 0,
@@ -54,13 +61,70 @@ uint8_t prev_key_state = 0, prev_mouse_state = 0, has_moved = 0, paused = 0,
 
 uint8_t move_history[400];
 
-uint8_t level2_rows = 3, level2_cols = 10, level2_tile_w = 8, level2_tile_h = 8,
-  level2_fruit_count = 0;
-point_t* level2_fruits;
+uint8_t level2_rows = 3, level2_cols = 10, level2_tile_w = 8, level2_tile_h = 8;
 char level2_map[3][10] =
 {{'w', 'w', 'w', 'w', 'w', 'w', 'w', 'w', 'w', 'w'},
  {'w', '1', '0', 'e', 'e', 'f', 'e', 'f', 'e', 'w'},
  {'w', 'w', 'w', 'w', 'w', 'w', 'w', 'w', 'w', 'w'},};
+
+void add_fruit(fruit_basket_t *basket, point_t fruit){
+  point_t *fruits = realloc(basket->fruits, sizeof(fruits)*(basket->n+1));
+  uint8_t *eaten = realloc(basket->eaten, sizeof(eaten)*(basket->n+1));
+  if(fruits && eaten){
+    basket->fruits = fruits;
+    basket->fruits[basket->n] = fruit;
+
+    basket->eaten = eaten;
+    basket->eaten[basket->n] = 0;
+
+    basket->n++;
+  }
+}
+
+void free_fruit_basket(fruit_basket_t *basket) {
+  if(basket->fruits != NULL) {
+    free(basket->fruits);
+    basket->fruits= NULL;
+  }
+  if (basket->eaten != NULL) {
+    free(basket->eaten);
+    basket->eaten = NULL;
+  }
+  basket->n = 0;
+}
+
+void add_body_part(normal_snake_t *snake, point_t body_part) {
+  point_t *body = realloc(snake->body, sizeof(body) * (snake->length+1));
+  if(body) {
+    snake->body = body;
+    snake->body[snake->length] = body_part;
+    snake->length++;
+  }
+}
+
+void free_snake(normal_snake_t *snake) {
+  if(snake->body != NULL) {
+    free(snake->body);
+    snake->body = NULL;
+  }
+  snake->length = 0;
+  snake->dead = 0;
+}
+
+void input () {
+  const uint8_t mouse = *MOUSE_BUTTONS;
+  const uint8_t mouse_just_pressed =
+    *MOUSE_BUTTONS & (*MOUSE_BUTTONS ^ prev_mouse_state);
+  const int16_t mouse_x = *MOUSE_X, mouse_y = *MOUSE_Y;
+
+  if(mouse_just_pressed & MOUSE_LEFT) {
+    /* trace("mouse left"); */
+    /* tracef("%d %d\n", mouse_x, mouse_y); */
+    /* if(paused == 1) paused = 0; */
+    /* else paused = 1; */
+
+  }
+}
 
 void start() {
   /* state = MAIN_MENU; */
@@ -80,29 +144,6 @@ void start() {
   PALETTE[3] = 0x051f39;
 
   /* tracef("%d %d %d \n", wrap(-1, 10), wrap(0, 11), wrap(19, 15)); */
-}
-
-void free_snake(normal_snake_t *snake) {
-  if(snake->body != NULL) {
-    free(snake->body);
-    snake->body = NULL;
-  }
-  snake->length = 0;
-}
-
-void input () {
-  const uint8_t mouse = *MOUSE_BUTTONS;
-  const uint8_t mouse_just_pressed =
-    *MOUSE_BUTTONS & (*MOUSE_BUTTONS ^ prev_mouse_state);
-  const int16_t mouse_x = *MOUSE_X, mouse_y = *MOUSE_Y;
-
-  if(mouse_just_pressed & MOUSE_LEFT) {
-    /* trace("mouse left"); */
-    /* tracef("%d %d\n", mouse_x, mouse_y); */
-    /* if(paused == 1) paused = 0; */
-    /* else paused = 1; */
-
-  }
 }
 
 void update () {
@@ -164,7 +205,8 @@ void update () {
     }
   }
   else if(state == LEVEL) {
-    if (level == 0) {
+
+    if (level == 0) { // classic snake
 
       /*** input ***/
       if (just_pressed & BUTTON_UP){
@@ -275,13 +317,14 @@ void update () {
 
         // free snake
         free_snake(&snake);
+        free_fruit_basket(&basket);
 
         // next level
         level = 1;
 
       }
     }
-    else if (level == 1) {
+    else if (level == 1) { // how about a puzzle game instead?
       *DRAW_COLORS = 0x0032;
       text("how about a\npuzzle game\n instead?  ", 35, 50);
 
@@ -298,13 +341,7 @@ void update () {
         /* initialize level 2 */
 
         // initialize snake
-        point_t *body = realloc(snake.body,
-                                sizeof(point_t) * level2_cols * level2_rows);
-        if(body) {
-          snake.body = body;
-          snake.length = 0;
-
-        }
+        uint16_t l = 0;
 
         // map
         for(int16_t row = 0; row < level2_rows; row++){
@@ -313,17 +350,101 @@ void update () {
 
             // snake body parts
             if('0' <= c && c <= '9') {
-              snake.body[c - '0'] = (point_t){col,row};
-              snake.length++;
+              l++;
             }
-            else if(c == 'f') {
-              // add the fruit
+          }
+        }
+
+        point_t *body = realloc(snake.body, sizeof(point_t) * l);
+        if(body) {
+          snake.body = body;
+          snake.length = l;
+        }
+
+        for(int16_t row = 0; row < level2_rows; row++){
+          for(int16_t col = 0; col < level2_cols; col++) {
+            char c = level2_map[row][col];
+
+            if('0' <= c && c <= '9') { // snake body parts
+              /* add_body_part(&snake, (point_t){col,row}); */
+              snake.body[c-'0'] = (point_t){col,row};
+            }
+            else if(c == 'f') { // add the fruit
+              add_fruit(&basket, (point_t){col,row});
             }
           }
         }
       }
     }
-    else if (level == 2) {
+    else if (level == 2) { // puzzle1
+
+      /*** input ***/
+      if (just_pressed & BUTTON_UP){
+        if(snake.direction.y == 0 &&
+           (snake.length > 1 &&
+            wrap(snake.body[0].y-1, 20) != snake.body[1].y)){
+          snake.direction = (point_t){0,-1};
+        }
+      }
+
+      if (just_pressed & BUTTON_DOWN) {
+        if(snake.direction.y == 0 &&
+           (snake.length > 1 &&
+            wrap(snake.body[0].y+1, 20) != snake.body[1].y)){
+          snake.direction = (point_t){0,1};
+        }
+      }
+      if (just_pressed & BUTTON_LEFT) {
+        if(snake.direction.x == 0 &&
+           (snake.length > 1 &&
+            wrap(snake.body[0].x-1, 20) != snake.body[1].x)){
+          snake.direction = (point_t){-1, 0};
+        }
+      }
+      if (just_pressed & BUTTON_RIGHT) {
+        if(snake.direction.x == 0 &&
+           (snake.length > 1 &&
+            wrap(snake.body[0].x+1, 20) != snake.body[1].x)){
+          snake.direction = (point_t){1, 0};
+        }
+      }
+
+      if (!snake.dead && (snake.direction.x != 0 || snake.direction.y != 0)) {
+        point_t last_body_part = snake.body[snake.length-1];
+        for(int i = snake.length-1; i> 0; i--){
+          snake.body[i] = snake.body[i-1];
+        }
+
+        snake.body[0].x = snake.body[0].x + snake.direction.x;
+        snake.body[0].y = snake.body[0].y + snake.direction.y;
+
+        // fruit collision
+        for (int i = 0; i < basket.n; i++){
+          if(snake.body[0].x == basket.fruits[i].x &&
+             snake.body[0].y == basket.fruits[i].y &&
+             !basket.eaten[i]){
+
+            add_body_part(&snake, last_body_part);
+            basket.eaten[i] = 1;
+          }
+        }
+
+        // body collision
+        int head_body_collision = 0;
+        for(int i = 1; i< snake.length-1; i++){
+          if(snake.body[0].x == snake.body[i].x &&
+             snake.body[0].y == snake.body[i].y) {
+            head_body_collision = 1;
+            break;
+          }
+        }
+
+        if(head_body_collision){
+          snake.dead = 1;
+        }
+
+        snake.direction.x = snake.direction.y = 0;
+      }
 
       /* draw */
       // draw map
@@ -362,6 +483,17 @@ void update () {
       *DRAW_COLORS = 0x12;
       rect(x+snake.body[0].x*level2_tile_w , y+snake.body[0].y*level2_tile_h,
            level2_tile_w, level2_tile_h);
+
+      // draw fruit
+      for(int i = 0; i < basket.n; i++){
+        if(!basket.eaten[i]){
+          *DRAW_COLORS = 0x4320;
+          blit(fruit_sprite,
+               x+(basket.fruits[i].x*level2_tile_w),
+               y+(basket.fruits[i].y*level2_tile_h),
+               level2_tile_w, level2_tile_h, BLIT_2BPP);
+        }
+      }
 
     }
     else if (level == 3) {

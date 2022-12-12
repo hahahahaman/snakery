@@ -409,14 +409,22 @@ void update () {
         }
       }
 
-      if (!snake.dead && (snake.direction.x != 0 || snake.direction.y != 0)) {
+      int16_t
+        next_x = snake.body[0].x + snake.direction.x,
+        next_y = snake.body[0].y + snake.direction.y;
+
+      if (!snake.dead &&
+          (snake.direction.x != 0 || snake.direction.y != 0) &&
+          (next_x < 0 || next_x > level2_cols-1 ||
+           next_y < 0 || next_y > level2_rows-1 ||
+           level2_map[next_y][next_x] != 'w')) {
         point_t last_body_part = snake.body[snake.length-1];
         for(int i = snake.length-1; i> 0; i--){
           snake.body[i] = snake.body[i-1];
         }
 
-        snake.body[0].x = snake.body[0].x + snake.direction.x;
-        snake.body[0].y = snake.body[0].y + snake.direction.y;
+        snake.body[0].x = next_x;
+        snake.body[0].y = next_y;
 
         // fruit collision
         for (int i = 0; i < basket.n; i++){
@@ -442,9 +450,9 @@ void update () {
         if(head_body_collision){
           snake.dead = 1;
         }
-
-        snake.direction.x = snake.direction.y = 0;
       }
+
+      snake.direction.x = snake.direction.y = 0;
 
       /* draw */
       // draw map

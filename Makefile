@@ -26,7 +26,9 @@ LDFLAGS = -Wl,-zstack-size=14752,--no-entry,--import-memory -mexec-model=reactor
 ifeq ($(DEBUG), 1)
 	LDFLAGS += -Wl,--export-all,--no-gc-sections
 else
-	LDFLAGS += -Wl,--strip-all,--gc-sections,--lto-O3 -Oz
+    # --strip-all causes linker error [wasm-validator error in function 1] unexpected false: Bulk memory operation
+	# LDFLAGS += -Wl,--strip-all,--gc-sections,--lto-O3 -Oz
+	LDFLAGS += -Wl,--gc-sections,--lto-O3 -Oz
 endif
 
 OBJECTS = $(patsubst src/%.c, build/%.o, $(wildcard src/*.c))

@@ -12,3 +12,28 @@
 *** TODO body start positions
 * DONE start screen
 * TODO death screen
+* TODO error report
+
+linker script flag --strip-all causes wasm-validator error. strip-all removes symbols in object file? it's kind of esoteric i couldn't find much info online. but i didn't look that hard
+
+LDFLAGS += -Wl,--strip-all,--gc-sections,--lto-O3 -Oz
+
+[wasm-validator error in function 1] unexpected false: Bulk memory operation (bulk memory is disabled), on
+(memory.fill
+ (i32.const 14928)
+ (i32.const 0)
+ (i32.const 554)
+)
+[wasm-validator error in function 10] unexpected false: Bulk memory operation (bulk memory is disabled), on
+(memory.copy
+ (local.get $0)
+ (local.get $1)
+ (local.get $2)
+)
+Fatal: error validating input
+clang-15: error: linker command failed with exit code 1 (use -v to see invocation)
+
+---
+
+
+--export-all makes it work

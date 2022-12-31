@@ -1,18 +1,34 @@
 #+title: snakery
 
 * DONE collision with self
+* DONE undo system
+how would i do this?
+
+i have a dynamic 3d array. each time a move occurs i reset the state
+
+too memory intensive
+
+---
+
+just keep track of the tail position and the fruits eaten
+* TODO fruit that makes you shrink one?
+yeah that's a good simple extension
+* TODO switch head position with other body parts?
 * TODO portals
-* TODO undo
-* TODO make levels
+* DONE make levels
 ** DONE changing level logic
-** TODO reading maps
-*** TODO map array format
-*** TODO walls
-*** TODO head start position
-*** TODO body start positions
+** DONE reading maps
+*** DONE map array format
+*** DONE walls
+*** DONE head start position
+*** DONE body start positions
 * DONE start screen
-* TODO death screen
-* TODO error report
+* TODO death screen? not super necessary
+tell player to undo if they are stuck
+
+check they are stuck. DONE
+
+* TODO send error report to wasm4 github issue tracker
 
 linker script flag --strip-all causes wasm-validator error. strip-all removes symbols in object file? it's kind of esoteric i couldn't find much info online. but i didn't look that hard
 
@@ -37,3 +53,8 @@ clang-15: error: linker command failed with exit code 1 (use -v to see invocatio
 
 
 --export-all makes it work
+
+** TODO make a reproducible program?
+i could use the snakery project itself?
+
+i could do a simple template project and test it.

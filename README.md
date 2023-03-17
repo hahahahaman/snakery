@@ -4,7 +4,7 @@ Puzzle game of a snake eating fruit.
 
 ## Building
 
-Build the cart by running:
+Build cart.wasm:
 
 ```shell
 make
@@ -21,6 +21,8 @@ To rebuild automatically:
 ```shell
 w4 watch
 
+
+# if you don't want to open a browser:
 w4 watch --no-open
 ```
 

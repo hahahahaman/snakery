@@ -14,7 +14,8 @@ just keep track of the tail position and the fruits eaten
 * TODO fruit that makes you shrink one?
 yeah that's a good simple extension
 * TODO switch head position with other body parts?
-* TODO portals
+makes the game much more flexible
+* TODO portals?
 * DONE make levels
 ** DONE changing level logic
 ** DONE reading maps

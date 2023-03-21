@@ -12,10 +12,12 @@ too memory intensive
 
 just keep track of the tail position and the fruits eaten
 * TODO fruit that makes you shrink one?
-yeah that's a good simple extension
+maybe
+* TODO draw the tail some other color
 * TODO switch head position with other body parts?
 makes the game much more flexible
-* TODO portals?
+* TODO refactor draw functions
+and other things that are reused in levels
 * DONE make levels
 ** DONE changing level logic
 ** DONE reading maps

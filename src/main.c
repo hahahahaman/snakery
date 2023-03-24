@@ -16,8 +16,9 @@ typedef signed char s8;
 
 enum bool { FALSE, TRUE };
 
+/* typedef enum bool bool; */
+
 enum game_state { MAIN_MENU, LEVEL };
-enum level_type { PUZZLE, TEXT };
 
 u8 max_u8(u8 a, u8 b){
   return a > b ? a : b;
@@ -125,6 +126,7 @@ void free_snake(snake_t *snake) {
     snake->body = NULL;
   }
   snake->length = 0;
+  snake->direction = (point_t){0,0};
   stuck = FALSE;
 }
 
@@ -226,18 +228,17 @@ void add_history(history_t *history, snake_t *snake, u8 fruit_eaten,
       history->fruit_eaten_position[history->num_fruit_eaten-1] = fruit_position;
     }
   }
-
 }
 
-void init_level(u8 w, u8 h, char map[h][w], snake_t *snake,
+void init_level(level_t *level, char map[][level->w], snake_t *snake,
                 fruit_basket_t *basket, history_t *history) {
   free_fruit_basket(basket);
 
   u16 snake_len = 0;
 
   // map
-  for(u8 row = 0; row < h; row++){
-    for(u8 col = 0; col < w; col++) {
+  for(u8 row = 0; row < level->h; row++){
+    for(u8 col = 0; col < level->w; col++) {
       char c = map[row][col];
 
       // snake body parts
@@ -249,8 +250,8 @@ void init_level(u8 w, u8 h, char map[h][w], snake_t *snake,
 
   init_snake(snake, snake_len);
 
-  for(s16 row = 0; row < h; row++){
-    for(s16 col = 0; col < w; col++) {
+  for(s16 row = 0; row < level->h; row++){
+    for(s16 col = 0; col < level->w; col++) {
       char c = map[row][col];
 
       if('A' <= c && c <= 'Z') { // snake body parts
@@ -279,7 +280,6 @@ void undo(history_t *history, snake_t *snake, fruit_basket_t *basket){
     for(u16 i = 0; i < snake->length-1; i++)
       snake->body[i] = snake->body[i+1];
   }
-
 
   if (fruit_eaten > 0 &&
       history->fruit_eaten_on_move[fruit_eaten-1] == num_moves) {
@@ -320,12 +320,12 @@ void undo(history_t *history, snake_t *snake, fruit_basket_t *basket){
 /*   } */
 /* } */
 
-level_t level2, level4, level6;
+level_t level2, level4, level6, level8, level10, level12, level14;
 
 // worm
 char level2_map[3][10] =
    {"##########",
-    "#BA___$_$#",
+    "#CBA__$_$#",
     "##########",};
 
 #define LEVEL4_W 7
@@ -336,28 +336,82 @@ char level4_map[LEVEL4_H][LEVEL4_W] =
    {"#####__",
     "#$__#__",
     "#_#_###",
-    "#_BA_$#",
+    "#CBA_$#",
     "#######",};
 
+#define LEVEL6_W 4
+#define LEVEL6_H 5
 
-#define LEVEL6_W 10
-#define LEVEL6_H 10
-
-// ABCDEFGHIJKLMNOPQRSTUVWXYZ
 char level6_map[LEVEL6_H][LEVEL6_W] =
 {
-"##########",
-"#$QPO____#",
-"#B___N___#",
-"#CRYWM___#",
-"#DSAXL___#",
-"#ETUVK___#",
-"#FGHIJ___#",
-"#________#",
-"#________#",
-"##########",
+"####",
+"#AD#",
+"#BC#",
+"#$##",
+"####",
 };
 
+// save for later
+// ABCDEFGHIJKLMNOPQRSTUVWXYZ
+/* char level8_map[LEVEL8_H][LEVEL8_W] = */
+/* { */
+/* "##########", */
+/* "#$BKO____#", */
+/* "#Q___N___#", */
+/* "#CRYWM___#", */
+/* "#DSAXL___#", */
+/* "#ETJVU___#", */
+/* "#FGHIP___#", */
+/* "#________#", */
+/* "#________#", */
+/* "##########", */
+/* }; */
+
+
+#define LEVEL8_W 6
+#define LEVEL8_H 6
+char level8_map[LEVEL8_H][LEVEL8_W] =
+{
+"######",
+"#$DE$#",
+"#ACB$#",
+"#HGF$#",
+"#$$$$#",
+"######",
+};
+
+#define LEVEL10_W 14
+#define LEVEL10_H 12
+
+char level10_map[LEVEL10_H][LEVEL10_W] =
+{
+"##############",
+"#_$__________#",
+"#__$____STUV_#",
+"#_$_####AB_DE#",
+"#___#$$______#",
+"#___#$$______#",
+"#___#$$___####",
+"#___#___#F$_I#",
+"#___#___#GMNC#",
+"#___#___#HLOR#",
+"#$$$#___#JKPQ#",
+"##############",
+};
+
+/* char level10_map[LEVEL10_H][LEVEL10_W] = */
+/* { */
+/* "##########", */
+/* "#________#", */
+/* "#________#", */
+/* "#________#", */
+/* "#________#", */
+/* "#________#", */
+/* "#________#", */
+/* "#________#", */
+/* "#________#", */
+/* "##########", */
+/* }; */
 
 // passing-a-multidimensional-variable-length-array-to-a-function
 // https://stackoverflow.com/questions/14548753/passing-a-multidimensional-variable-length-array-to-a-function
@@ -406,6 +460,182 @@ u8 is_stuck(snake_t* s, s32 map_height, s32 map_width, char map[map_height][map_
   return !(can_go_right || can_go_left || can_go_up || can_go_down);
 }
 
+void move_snake(snake_t *snake, level_t *level, char map[][level->w],
+                fruit_basket_t *basket, history_t *history){
+
+  const u8 just_pressed = *GAMEPAD1 & (*GAMEPAD1 ^ prev_key_state);
+
+  /*** input ***/
+
+  if (just_pressed & BUTTON_2) {
+    undo(history, snake, basket);
+    return;
+  }
+
+  if (just_pressed & BUTTON_UP){
+    snake->direction = (point_t){0,-1};
+  }
+
+  if (just_pressed & BUTTON_DOWN){
+    snake->direction = (point_t){0,1};
+  }
+
+  if (just_pressed & BUTTON_LEFT){
+    snake->direction = (point_t){-1,0};
+  }
+
+  if (just_pressed & BUTTON_RIGHT){
+    snake->direction = (point_t){1,0};
+  }
+
+  s16 next_x = snake->body[0].x + snake->direction.x,
+    next_y = snake->body[0].y + snake->direction.y;
+
+  if ((snake->direction.x != 0 || snake->direction.y != 0) &&
+      (0 <= next_x && next_x < level->w &&
+       0 <= next_y && next_y < level->h) &&
+      map[next_y][next_x] != '#'){
+
+    // body collision
+    u8 head_body_collision = FALSE;
+    for(u16 i = 1; i < snake->length-1; i++){ // tail can swap with head
+      if(next_x == snake->body[i].x &&
+         next_y == snake->body[i].y) {
+        head_body_collision = 1;
+        break;
+      }
+    }
+
+    if(head_body_collision){
+      /* stuck = TRUE; */
+    } else{
+
+      point_t tail = snake->body[snake->length-1];
+
+      for(u16 i = snake->length-1; i > 0; i--){
+        snake->body[i] = snake->body[i-1];
+      }
+
+      snake->body[0].x = next_x;
+      snake->body[0].y = next_y;
+
+      u8 fruit_eaten = FALSE;
+      point_t fruit_pos;
+
+      // fruit collision
+      u8 num_eaten = 0;
+      for (u16 i = 0; i < basket->n; i++){
+        if(next_x == basket->fruits[i].x &&
+           next_y == basket->fruits[i].y &&
+           !basket->eaten[i]){
+
+          add_body_part(snake, tail);
+          basket->eaten[i] = TRUE;
+          fruit_eaten = TRUE;
+          fruit_pos = (point_t){next_x, next_y};
+        }
+
+        if(basket->eaten[i]) num_eaten++;
+      }
+
+      if(num_eaten < basket->n) {
+        snake->body[0].x = next_x;
+        snake->body[0].y = next_y;
+
+        add_history(history, snake, fruit_eaten, fruit_pos);
+
+        tracef("num_moves: %d, saved_pos: %d, num_fruit: %d",
+               history->num_moves, history->num_saved_positions,
+               history->num_fruit_eaten);
+
+        /* for(u8 i = 0; i < history.num_saved_positions; i++){ */
+        /*   tracef("tail[%d]: {%d,%d}", i, */
+        /*          history.prev_tail_position[i].x, */
+        /*          history.prev_tail_position[i].y); */
+        /* } */
+
+        /* tracef("is_stuck? %d\n", is_stuck(&snake, level6.w, level6_map)); */
+      } else {
+        current_level++;
+        free_fruit_basket(basket);
+        free_snake(snake);
+      }
+    }
+  }
+
+  snake->direction = (point_t){0,0};
+}
+
+void draw(snake_t *snake, level_t *level, char map[][level->w], fruit_basket_t *basket){
+
+  int x = SCREEN_SIZE/2 - (level->w * level->tw)/2,
+    y = SCREEN_SIZE/2 - (level->h * level->th)/2;
+
+  // draw level
+  for(int row = 0; row < level->h; row++){
+    for(int col = 0; col < level->w; col++) {
+
+      /* *DRAW_COLORS = 0x; */
+      /* rect(x + (col*level6.tw), y + (row*level6.th), */
+      /*      level6.tw, level6.th); */
+
+      if (map[row][col] == '#') {
+        *DRAW_COLORS = 0x41;
+        rect(x + (col*level->tw), y + (row*level->th), level->tw, level->th);
+      }
+    }
+  }
+
+  // draw snake
+  for(u8 i = 0; i < snake->length; i++){
+    // screen is 160x160 pixels
+    // each snake body part is 8x8, so we have 20x20 blocks to fill the screen
+
+    /* u8 w = max_u8(level6.tw-i+1, 5), */
+    /*   h = max_u8(level6.th-i+1, 5); */
+
+    /* rect(x+snake.body[i].x*level6.tw + (level6.tw - w), */
+    /*      y+snake.body[i].y*level6.th + (level6.th - h), */
+    /*      w, */
+    /*      h); */
+
+    /* rect(x+snake.body[i].x*level6.tw, */
+    /*      y+snake.body[i].y*level6.th, */
+    /*      level6.tw, */
+    /*      level6.th); */
+
+    if (i == 0 ) {
+      *DRAW_COLORS = 0x02;
+    } else if (i == snake->length-1) {
+      *DRAW_COLORS = 0x04;
+    } else {
+      *DRAW_COLORS = 0x03;
+    }
+
+    const char s[] = {'A'+(char)i, '\0'};
+    text(s, x + (snake->body[i].x*level->tw), y + (snake->body[i].y*level->th));
+  }
+
+  // draw fruit
+  for(int i = 0; i < basket->n; i++){
+    if(!basket->eaten[i]){
+      *DRAW_COLORS = 0x4320;
+      blit(fruit_sprite,
+           x+(basket->fruits[i].x*level->tw),
+           y+(basket->fruits[i].y*level->th),
+           level->tw, level->th,
+           BLIT_2BPP);
+    }
+  }
+}
+
+void update_puzzle(snake_t* snake, level_t *level, char map[][level->w],
+                  fruit_basket_t *basket, history_t *history){
+    draw(snake, level, map, basket);
+
+    move_snake(snake, level, map, basket, history);
+}
+
 void start() {
 
   /* can't tracef longs */
@@ -415,7 +645,7 @@ void start() {
 
   /* state = MAIN_MENU; */
   state = LEVEL;
-  current_level = 5;
+  current_level = 9;
 
   // EN4 - https://lospec.com/palette-list/en4
   /* PALETTE[0] = 0xfbf7f3; */
@@ -445,6 +675,16 @@ void start() {
   level6.w = LEVEL6_W;
   level6.tw = 8;
   level6.th = 8;
+
+  level8.h = LEVEL8_H;
+  level8.w = LEVEL8_W;
+  level8.tw = 8;
+  level8.th = 8;
+
+  level10.h = LEVEL10_H;
+  level10.w = LEVEL10_W;
+  level10.tw = 8;
+  level10.th = 8;
 }
 
 void update_main_menu(){
@@ -474,7 +714,7 @@ void update_main_menu(){
     snake.body[0] = (point_t){2,0};
     snake.body[1] = (point_t){1,0};
     snake.body[2] = (point_t){0,0};
-    snake.direction = (point_t){1, 0};
+    snake.direction = (point_t){1,0};
 
     // make level0_fruit
     level0_fruit.x = rand()%10;
@@ -487,10 +727,12 @@ void update_main_menu(){
 }
 
 void update_level() {
+  /*
   const u8 mouse = *MOUSE_BUTTONS;
   const u8 mouse_just_pressed =
     *MOUSE_BUTTONS & (*MOUSE_BUTTONS ^ prev_mouse_state);
   const s16 mouse_x = *MOUSE_X, mouse_y = *MOUSE_Y;
+  */
 
   /* if(mouse_just_pressed & MOUSE_LEFT) { */
   /*   tracef("mouse left"); */
@@ -501,7 +743,6 @@ void update_level() {
   const u8 just_pressed = *GAMEPAD1 & (*GAMEPAD1 ^ prev_key_state);
 
   if (current_level == 0) { // classic snake
-
     /*** input ***/
     if (just_pressed & BUTTON_UP){
       if(snake.direction.y == 0 &&
@@ -532,6 +773,29 @@ void update_level() {
         snake.direction = (point_t){1, 0};
       }
     }
+
+    // draw level0_fruit
+    *DRAW_COLORS = 0x4320;
+    blit(fruit_sprite, level0_fruit.x*8, level0_fruit.y*8, 8, 8, BLIT_2BPP);
+
+    /*** draw ***/
+    *DRAW_COLORS = 0x0033;
+    // draw body
+    // size_t is an unsigned int of at least 16 bits
+    for(size_t i = 0; i < snake.length-1; i++){
+      // screen is 160x160 pixels
+      // each snake body part is 8x8, so we have 20x20 blocks to fill the screen
+      rect(snake.body[i].x*8, snake.body[i].y*8, 8, 8);
+    }
+
+    // draw tail
+    *DRAW_COLORS = 0x0044;
+    rect(snake.body[snake.length-1].x*8,
+         snake.body[snake.length-1].y*8, 8, 8);
+
+    // draw head
+    *DRAW_COLORS = 0x0002;
+    rect(snake.body[0].x*8, snake.body[0].y*8, 8,8);
 
     /*** move ***/
     if (frame_count % 5 == 0) {
@@ -572,28 +836,13 @@ void update_level() {
       }
     }
 
-    /*** draw ***/
-    *DRAW_COLORS = 0x0043;
-    // draw body
-    // size_t is an unsigned int of at least 16 bits
-    for(size_t i = 0; i < snake.length; i++){
-      // screen is 160x160 pixels
-      // each snake body part is 8x8, so we have 20x20 blocks to fill the screen
-      rect(snake.body[i].x*8, snake.body[i].y*8, 8, 8);
-    }
-
-    // draw head
-    *DRAW_COLORS = 0x0004;
-    rect(snake.body[0].x*8, snake.body[0].y*8, 8,8);
-
-    // draw level0_fruit
-    *DRAW_COLORS = 0x4320;
-    blit(fruit_sprite, level0_fruit.x*8, level0_fruit.y*8, 8, 8, BLIT_2BPP);
-
     /*** initialize current_level 1 **/
     if (level0_score == 2 ){
       // next current_level
       current_level = 1;
+
+      free_fruit_basket(&basket);
+      free_snake(&snake);
     }
   }
   else if (current_level == 1) { // how about a puzzle game instead?
@@ -611,179 +860,11 @@ void update_level() {
       current_level = 2;
 
       /* initialize current_level 2 */
-
-      // initialize snake
-      u16 snake_len = 0;
-
-      // map
-      for(s16 row = 0; row < level2.h; row++){
-        for(s16 col = 0; col < level2.w; col++) {
-          char c = level2_map[row][col];
-
-          // snake body parts
-          if(('A' <= c) && (c <= 'Z')) {
-            snake_len++;
-          }
-        }
-      }
-
-      free_fruit_basket(&basket);
-
-      // free snake
-      free_snake(&snake);
-
-      point_t *body = realloc(snake.body, sizeof(point_t) * snake_len);
-      if(body) {
-        snake.body = body;
-        snake.length = snake_len;
-      }
-
-      for(s16 row = 0; row < level2.h; row++){
-        for(s16 col = 0; col < level2.w; col++) {
-          char c = level2_map[row][col];
-
-          if(('A' <= c) && (c <= 'Z')) { // snake body parts
-            /* add_body_part(&snake, (point_t){col,row}); */
-            snake.body[c-'A'] = (point_t){col,row};
-          }
-          else if(c == '$') { // add the fruit
-            add_fruit(&basket, (point_t){col,row});
-          }
-        }
-      }
+      init_level(&level2, level2_map, &snake, &basket, &history);
     }
   }
-  else if (current_level == 2) { // puzzle1
-
-    /*** input ***/
-    if (just_pressed & BUTTON_UP){
-      if(snake.direction.y == 0 &&
-         (snake.length > 1 && snake.body[0].y-1 != snake.body[1].y)){
-        snake.direction = (point_t){0,-1};
-      }
-    }
-
-    if (just_pressed & BUTTON_DOWN) {
-      if(snake.direction.y == 0 &&
-         (snake.length > 1 && snake.body[0].y+1 != snake.body[1].y)){
-        snake.direction = (point_t){0,1};
-      }
-    }
-    if (just_pressed & BUTTON_LEFT) {
-      if(snake.direction.x == 0 &&
-         (snake.length > 1 && snake.body[0].x-1 != snake.body[1].x)){
-        snake.direction = (point_t){-1, 0};
-      }
-    }
-    if (just_pressed & BUTTON_RIGHT) {
-      if(snake.direction.x == 0 &&
-         (snake.length > 1 && snake.body[0].x+1 != snake.body[1].x)){
-        snake.direction = (point_t){1, 0};
-      }
-    }
-
-    s16 next_x = snake.body[0].x + snake.direction.x,
-      next_y = snake.body[0].y + snake.direction.y;
-
-    if (!stuck &&
-        (snake.direction.x != 0 || snake.direction.y != 0) &&
-        (next_x < 0 || next_x > level2.w-1 ||
-         next_y < 0 || next_y > level2.h-1 ||
-         level2_map[next_y][next_x] != '#')) {
-      point_t last_body_part = snake.body[snake.length-1];
-      for(int i = snake.length-1; i> 0; i--){
-        snake.body[i] = snake.body[i-1];
-      }
-
-      snake.body[0].x = next_x;
-      snake.body[0].y = next_y;
-
-      // fruit collision
-      for (int i = 0; i < basket.n; i++){
-        if(snake.body[0].x == basket.fruits[i].x &&
-           snake.body[0].y == basket.fruits[i].y &&
-           !basket.eaten[i]){
-
-          add_body_part(&snake, last_body_part);
-          basket.eaten[i] = TRUE;
-        }
-      }
-
-
-      // body collision
-      int head_body_collision = 0;
-      for(int i = 1; i< snake.length-1; i++){
-        if(snake.body[0].x == snake.body[i].x &&
-           snake.body[0].y == snake.body[i].y) {
-          head_body_collision = 1;
-          break;
-        }
-      }
-
-      if(head_body_collision){
-        stuck = TRUE;
-      }
-    }
-
-    snake.direction.x = snake.direction.y = 0;
-
-    /* draw */
-    // draw map
-    int x = SCREEN_SIZE/2 - (level2.w * level2.tw)/2,
-      y = SCREEN_SIZE/2 - (level2.h * level2.th)/2;
-
-    for(int row = 0; row < level2.h; row++){
-      for(int col = 0; col < level2.w; col++) {
-
-        /* *DRAW_COLORS = 0x; */
-        /* rect(x + (col*level2.tw), y + (row*level2.th), */
-        /*      level2.tw, level2.th); */
-
-        if (level2_map[row][col] == '#') {
-          *DRAW_COLORS = 0x41;
-          rect(x + (col*level2.tw), y + (row*level2.th),
-               level2.tw, level2.th);
-        }
-        else if (level2_map[row][col] == 'z') {
-        }
-      }
-    }
-
-    // draw snake
-    *DRAW_COLORS = 0x13;
-    // draw body
-    // size_t is an unsigned int of at least 16 bits
-    for(size_t i = 0; i < snake.length; i++){
-      // screen is 160x160 pixels
-      // each snake body part is 8x8, so we have 20x20 blocks to fill the screen
-      rect(x+snake.body[i].x * level2.tw, y+snake.body[i].y*level2.th,
-           level2.tw, level2.th);
-    }
-
-    // draw head
-    *DRAW_COLORS = 0x12;
-    rect(x+snake.body[0].x*level2.tw , y+snake.body[0].y*level2.th,
-         level2.tw, level2.th);
-
-    // draw fruit
-    for(int i = 0; i < basket.n; i++){
-      if(!basket.eaten[i]){
-        *DRAW_COLORS = 0x4320;
-        blit(fruit_sprite,
-             x+(basket.fruits[i].x*level2.tw),
-             y+(basket.fruits[i].y*level2.th),
-             level2.tw, level2.th, BLIT_2BPP);
-      }
-    }
-
-    u8 num_eaten = 0;
-    for(int i = 0; i < basket.n; i++) {
-      if(basket.eaten[i]) num_eaten++;
-    }
-    if(num_eaten == basket.n) {
-      current_level = 3;
-    }
-
+  else if (current_level == 2) { // puzzle1, easy as CAB
+    update_puzzle(&snake, &level2, level2_map, &basket, &history);
   }
   else if (current_level == 3) {
     *DRAW_COLORS = 0x0032;
@@ -801,167 +882,15 @@ void update_level() {
 
       /* initialize current_level 4 */
 
-      init_level(level4.w, level4.h, level4_map, &snake, &basket, &history);
+      init_level(&level4, level4_map, &snake, &basket, &history);
     }
   }
   else if (current_level == 4) {
-
-    /*** input ***/
-    if (just_pressed & BUTTON_2) {
-      undo(&history, &snake, &basket);
-      return;
-    }
-
-    if (just_pressed & BUTTON_UP){
-      if(snake.direction.y == 0 &&
-         (snake.length > 1 && snake.body[0].y-1 != snake.body[1].y)){
-        snake.direction = (point_t){0,-1};
-      }
-    }
-
-    if (just_pressed & BUTTON_DOWN) {
-      if(snake.direction.y == 0 &&
-         (snake.length > 1 && snake.body[0].y+1 != snake.body[1].y)){
-        snake.direction = (point_t){0,1};
-      }
-    }
-    if (just_pressed & BUTTON_LEFT) {
-      if(snake.direction.x == 0 &&
-         (snake.length > 1 && snake.body[0].x-1 != snake.body[1].x)){
-        snake.direction = (point_t){-1, 0};
-      }
-    }
-    if (just_pressed & BUTTON_RIGHT) {
-      if(snake.direction.x == 0 &&
-         (snake.length > 1 && snake.body[0].x+1 != snake.body[1].x)){
-        snake.direction = (point_t){1, 0};
-      }
-    }
-
-    /*** move ***/
-    s16 next_x = snake.body[0].x + snake.direction.x,
-      next_y = snake.body[0].y + snake.direction.y;
-
-    if (!stuck &&
-        (snake.direction.x != 0 || snake.direction.y != 0) &&
-        (0 <= next_x && next_x < level4.w &&
-         0 <= next_y && next_y < level4.h &&
-         level4_map[next_y][next_x] != '#')) {
-      point_t last_body_part = snake.body[snake.length-1];
-      for(int i = snake.length-1; i> 0; i--){
-        snake.body[i] = snake.body[i-1];
-      }
-
-      // body collision
-      u8 head_body_collision = FALSE;
-      for(int i = 1; i< snake.length-1; i++){
-        if(next_x == snake.body[i].x &&
-           next_y == snake.body[i].y) {
-          head_body_collision = TRUE;
-          break;
-        }
-      }
-
-      if(head_body_collision){
-        /* stuck = TRUE; */
-      } else {
-        snake.body[0].x = next_x;
-        snake.body[0].y = next_y;
-
-        u8 fruit_eaten = FALSE;
-        point_t fruit_pos;
-
-        // fruit collision
-        for (int i = 0; i < basket.n; i++){
-          if(next_x == basket.fruits[i].x &&
-             next_y == basket.fruits[i].y &&
-             !basket.eaten[i]){
-
-            add_body_part(&snake, last_body_part);
-            basket.eaten[i] = 1;
-            fruit_eaten = TRUE;
-            fruit_pos = (point_t){next_x, next_y};
-          }
-        }
-
-        add_history(&history, &snake, fruit_eaten, fruit_pos);
-
-        tracef("num_moves: %d, saved_pos: %d, num_fruit: %d",
-               history.num_moves, history.num_saved_positions, history.num_fruit_eaten);
-        /* for(u8 i = 0; i < history.num_saved_positions; i++){ */
-        /*   tracef("tail[%d]: {%d,%d}", i, */
-        /*          history.prev_tail_position[i].x, history.prev_tail_position[i].y); */
-        /* } */
-        /* tracef("is_stuck? %d\n", is_stuck(&snake, level4.w, level4_map)); */
-      }
-
-    }
-
-    snake.direction.x = snake.direction.y = 0;
-
-    /* draw */
-    // draw map
-    int x = SCREEN_SIZE/2 - (level4.w * level4.tw)/2,
-      y = SCREEN_SIZE/2 - (level4.h * level4.th)/2;
-
-    for(int row = 0; row < level4.h; row++){
-      for(int col = 0; col < level4.w; col++) {
-
-        /* *DRAW_COLORS = 0x; */
-        /* rect(x + (col*level4.tw), y + (row*level4.th), */
-        /*      level4.tw, level4.th); */
-
-        if ( level4_map[row][col] == '#') {
-          *DRAW_COLORS = 0x41;
-          rect(x + (col*level4.tw), y + (row*level4.th),
-               level4.tw, level4.th);
-        }
-        else if (level4_map[row][col] == 'z') {
-        }
-      }
-    }
-
-    // draw snake
-    *DRAW_COLORS = 0x13;
-    // draw body
-    // size_t is an unsigned int of at least 16 bits
-    for(size_t i = 0; i < snake.length; i++){
-      // screen is 160x160 pixels
-      // each snake body part is 8x8, so we have 20x20 blocks to fill the screen
-      rect(x+snake.body[i].x * level4.tw, y+snake.body[i].y*level4.th,
-           level4.tw, level4.th);
-    }
-
-    // draw head
-    *DRAW_COLORS = 0x12;
-    rect(x+snake.body[0].x*level4.tw , y+snake.body[0].y*level4.th,
-         level4.tw, level4.th);
-
-    // draw fruit
-    for(int i = 0; i < basket.n; i++){
-      if(!basket.eaten[i]){
-        *DRAW_COLORS = 0x4320;
-        blit(fruit_sprite,
-             x+(basket.fruits[i].x*level4.tw),
-             y+(basket.fruits[i].y*level4.th),
-             level4.tw, level4.th, BLIT_2BPP);
-      }
-    }
-
-    u8 num_eaten = 0;
-    for(int i = 0; i < basket.n; i++) {
-      if(basket.eaten[i]) num_eaten++;
-    }
-    if(num_eaten == basket.n) {
-      current_level = 5;
-
-      free_fruit_basket(&basket);
-      free_snake(&snake);
-    }
+    update_puzzle(&snake, &level4, level4_map, &basket, &history);
   }
   else if (current_level == 5) {
     *DRAW_COLORS = 0x0032;
-    text("trying to come\nup with puzzles", 30, 50);
+    text("ouroboros", 60, 50);
 
     if ((frame_count % 60) < 30) {
       *DRAW_COLORS = 0x0001;
@@ -974,208 +903,79 @@ void update_level() {
       current_level = 6;
 
       /* initialize current_level 6 */
-      init_level(level6.w, level6.h, level6_map, &snake, &basket, &history);
+      init_level(&level6, level6_map, &snake, &basket, &history);
     }
   }
   else if (current_level == 6) {
-
-    /*** input ***/
-    if (just_pressed & BUTTON_2) {
-      undo(&history, &snake, &basket);
-      return;
-    }
-
-    if (just_pressed & BUTTON_UP){
-      if(snake.direction.y == 0 &&
-         (snake.length > 1 && snake.body[0].y-1 != snake.body[1].y)){
-        snake.direction = (point_t){0,-1};
-      }
-    }
-
-    if (just_pressed & BUTTON_DOWN) {
-      if(snake.direction.y == 0 &&
-         (snake.length > 1 && snake.body[0].y+1 != snake.body[1].y)){
-        snake.direction = (point_t){0,1};
-      }
-    }
-    if (just_pressed & BUTTON_LEFT) {
-      if(snake.direction.x == 0 &&
-         (snake.length > 1 && snake.body[0].x-1 != snake.body[1].x)){
-        snake.direction = (point_t){-1, 0};
-      }
-    }
-    if (just_pressed & BUTTON_RIGHT) {
-      if(snake.direction.x == 0 &&
-         (snake.length > 1 && snake.body[0].x+1 != snake.body[1].x)){
-        snake.direction = (point_t){1, 0};
-      }
-    }
-
-    /*** move ***/
-    s16 next_x = snake.body[0].x + snake.direction.x,
-      next_y = snake.body[0].y + snake.direction.y;
-
-    if (!stuck &&
-        (snake.direction.x != 0 || snake.direction.y != 0) &&
-        (0 <= next_x && next_x < level6.w &&
-         0 <= next_y && next_y < level6.h &&
-         level6_map[next_y][next_x] != '#')) {
-
-      // body collision
-      u8 head_body_collision = FALSE;
-      for(int i = 1; i< snake.length-1; i++){
-        if(next_x == snake.body[i].x &&
-           next_y == snake.body[i].y) {
-          head_body_collision = TRUE;
-          break;
-        }
-      }
-
-      if(head_body_collision){
-        /* stuck = TRUE; */
-      } else {
-
-        point_t last_body_part = snake.body[snake.length-1];
-        for(int i = snake.length-1; i> 0; i--){
-          snake.body[i] = snake.body[i-1];
-        }
-
-        snake.body[0].x = next_x;
-        snake.body[0].y = next_y;
-
-        u8 fruit_eaten = FALSE;
-        point_t fruit_pos;
-
-        // fruit collision
-        for (int i = 0; i < basket.n; i++){
-          if(next_x == basket.fruits[i].x &&
-             next_y == basket.fruits[i].y &&
-             !basket.eaten[i]){
-
-            add_body_part(&snake, last_body_part);
-            basket.eaten[i] = 1;
-            fruit_eaten = TRUE;
-            fruit_pos = (point_t){next_x, next_y};
-          }
-        }
-
-        add_history(&history, &snake, fruit_eaten, fruit_pos);
-
-        tracef("num_moves: %d, saved_pos: %d, num_fruit: %d",
-               history.num_moves, history.num_saved_positions,
-               history.num_fruit_eaten);
-
-        /* for(u8 i = 0; i < history.num_saved_positions; i++){ */
-        /*   tracef("tail[%d]: {%d,%d}", i, */
-        /*          history.prev_tail_position[i].x, */
-        /*          history.prev_tail_position[i].y); */
-        /* } */
-
-        /* tracef("is_stuck? %d\n", is_stuck(&snake, level6.w, level6_map)); */
-      }
-    }
-
-    snake.direction.x = snake.direction.y = 0;
-
-    /* draw */
-    // draw map
-    int x = SCREEN_SIZE/2 - (level6.w * level6.tw)/2,
-      y = SCREEN_SIZE/2 - (level6.h * level6.th)/2;
-
-    for(int row = 0; row < level6.h; row++){
-      for(int col = 0; col < level6.w; col++) {
-
-        /* *DRAW_COLORS = 0x; */
-        /* rect(x + (col*level6.tw), y + (row*level6.th), */
-        /*      level6.tw, level6.th); */
-
-        if (level6_map[row][col] == '#') {
-          *DRAW_COLORS = 0x41;
-          rect(x + (col*level6.tw), y + (row*level6.th),
-               level6.tw, level6.th);
-        }
-      }
-    }
-
-    // draw snake
-    // draw body
-    // size_t is an unsigned int of at least 16 bits
-    for(u8 i = 0; i < snake.length; i++){
-      // screen is 160x160 pixels
-      // each snake body part is 8x8, so we have 20x20 blocks to fill the screen
-
-      /* u8 w = max_u8(level6.tw-i+1, 5), */
-      /*   h = max_u8(level6.th-i+1, 5); */
-
-      /* rect(x+snake.body[i].x*level6.tw + (level6.tw - w), */
-      /*      y+snake.body[i].y*level6.th + (level6.th - h), */
-      /*      w, */
-      /*      h); */
-
-      /* rect(x+snake.body[i].x*level6.tw, */
-      /*      y+snake.body[i].y*level6.th, */
-      /*      level6.tw, */
-      /*      level6.th); */
-
-      if (i == 0 ) {
-        *DRAW_COLORS = 0x02;
-      } else if (i == snake.length-1) {
-        *DRAW_COLORS = 0x04;
-      } else {
-
-        *DRAW_COLORS = 0x03;
-      }
-
-      const char s[] = {'A'+(char)i, '\0'};
-      text(s, x + (snake.body[i].x*level6.tw), y + (snake.body[i].y*level6.th));
-
-    }
-
-    /* char s[] = {'A'+(char)0, '\0'}; */
-    /* text(s, x + (snake.body[0].x*level6.tw), y + (snake.body[0].y*level6.th)); */
-
-    /* char t[] = {'B', '\0'}; */
-    /* text(t, x + (snake.body[1].x*level6.tw), y + (snake.body[1].y*level6.th)); */
-
-    /* char u[] = {'a', '\0'}; */
-    /* text(u, x + (snake.body[2].x*level6.tw), y + (snake.body[2].y*level6.th)); */
-
-    // tail separate?
-    /* if(snake.length > 1) { */
-    /*   *DRAW_COLORS = 0x33; */
-    /*   rect(x+snake.body[snake.length-1].x*level6.tw+2, */
-    /*        y+snake.body[snake.length-1].y*level6.th+2, */
-    /*        level6.tw/2, level6.th/2); */
-    /* } */
-
-    // draw head
-    /* *DRAW_COLORS = 0x12; */
-    /* rect(x+snake.body[0].x*level6.tw , y+snake.body[0].y*level6.th, */
-    /*      level6.tw, level6.th); */
-
-    // draw fruit
-    for(int i = 0; i < basket.n; i++){
-      if(!basket.eaten[i]){
-        *DRAW_COLORS = 0x4320;
-        blit(fruit_sprite,
-             x+(basket.fruits[i].x*level6.tw),
-             y+(basket.fruits[i].y*level6.th),
-             level6.tw, level6.th, BLIT_2BPP);
-      }
-    }
-
-    u8 num_eaten = 0;
-    for(int i = 0; i < basket.n; i++) {
-      if(basket.eaten[i]) num_eaten++;
-    }
-    if(num_eaten == basket.n) {
-      current_level = 5;
-
-      free_fruit_basket(&basket);
-      free_snake(&snake);
-    }
+    update_puzzle(&snake, &level6, level6_map, &basket, &history);
   }
   else if (current_level == 7) {
+    *DRAW_COLORS = 0x0032;
+    text("fruity loop", 35, 50);
+
+    if ((frame_count % 60) < 30) {
+      *DRAW_COLORS = 0x0001;
+    } else {
+      *DRAW_COLORS = 0x0003;
+    }
+    text("X to continue", 30, 130);
+
+    if (just_pressed & BUTTON_1) { // x just pressed
+      current_level = 8;
+
+      /* initialize 8 */
+      init_level(&level8, level8_map, &snake, &basket, &history);
+    }
+  }
+  else if(current_level == 8) {
+    update_puzzle(&snake, &level8, level8_map, &basket, &history);
+  }
+  else if(current_level == 9) {
+    *DRAW_COLORS = 0x0032;
+    text("testing", 30, 50);
+
+    if ((frame_count % 60) < 30) {
+      *DRAW_COLORS = 0x0001;
+    } else {
+      *DRAW_COLORS = 0x0003;
+    }
+    text("X to continue", 30, 130);
+
+    if (just_pressed & BUTTON_1) { // x just pressed
+      current_level = 10;
+
+      /* initialize 8 */
+      init_level(&level10, level10_map, &snake, &basket, &history);
+    }
+  }
+  else if(current_level == 10) {
+    update_puzzle(&snake, &level10, level10_map, &basket, &history);
+  }
+  else if(current_level == 11) {
+    *DRAW_COLORS = 0x0032;
+    text("hmmm", 30, 50);
+
+    if ((frame_count % 60) < 30) {
+      *DRAW_COLORS = 0x0001;
+    } else {
+      *DRAW_COLORS = 0x0003;
+    }
+    text("X to continue", 30, 130);
+
+    if (just_pressed & BUTTON_1) { // x just pressed
+      current_level = 10;
+
+      /* initialize 8 */
+      init_level(&level10, level10_map, &snake, &basket, &history);
+    }
+  }
+  else if(current_level == 12) {
+  }
+  else if(current_level == 13) {
+  }
+  else if(current_level == 14) {
+  }
+  else if(current_level == 15) {
   }
   else {
     state = MAIN_MENU;

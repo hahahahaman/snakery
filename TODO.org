@@ -13,10 +13,11 @@ too memory intensive
 just keep track of the tail position and the fruits eaten
 * TODO fruit that makes you shrink one?
 maybe
-* TODO draw the tail some other color
+* TODO press x to reset level
+* DONE draw the tail some other color
 * TODO switch head position with other body parts?
 makes the game much more flexible
-* TODO refactor draw functions
+* DONE refactor draw functions
 and other things that are reused in levels
 * DONE make levels
 ** DONE changing level logic
@@ -26,7 +27,7 @@ and other things that are reused in levels
 *** DONE head start position
 *** DONE body start positions
 * DONE start screen
-* TODO death screen? not super necessary
+* DONE death screen? not necessary
 tell player to undo if they are stuck
 
 check they are stuck. DONE

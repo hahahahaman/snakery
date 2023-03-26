@@ -354,7 +354,7 @@ char level6_map[LEVEL6_H][LEVEL6_W] =
 "####",
 };
 
-// save for later
+// save for later. actually i don't like this level anymore
 // ABCDEFGHIJKLMNOPQRSTUVWXYZ
 /* char level8_map[LEVEL8_H][LEVEL8_W] = */
 /* { */
@@ -383,11 +383,27 @@ char level8_map[LEVEL8_H][LEVEL8_W] =
 "######",
 };
 
-#define LEVEL10_W 14
-#define LEVEL10_H 10
+#define LEVEL10_W 6
+#define LEVEL10_H 9
+
+char level10_map[LEVEL10_H][LEVEL10_W] =
+{
+"#####_",
+"#B#$#_",
+"#A#_##",
+"#$$$$#",
+"#$$$$#",
+"#$$$$#",
+"#$$$$#",
+"#__###",
+"####__",
+};
+
+#define LEVEL12_W 14
+#define LEVEL12_H 10
 
 // pigs get slaughtered
-char level10_map[LEVEL10_H][LEVEL10_W] =
+char level12_map[LEVEL12_H][LEVEL12_W] =
 {
 "##############",
 "###_____GFE_##",
@@ -401,19 +417,23 @@ char level10_map[LEVEL10_H][LEVEL10_W] =
 "##############",
 };
 
-/* char level10_map[LEVEL10_H][LEVEL10_W] = */
-/* { */
-/* "##########", */
-/* "#________#", */
-/* "#________#", */
-/* "#________#", */
-/* "#________#", */
-/* "#________#", */
-/* "#________#", */
-/* "#________#", */
-/* "#________#", */
-/* "##########", */
-/* }; */
+#define LEVEL14_W 10
+#define LEVEL14_H 11
+
+char level14_map[LEVEL14_H][LEVEL14_W] =
+{
+"_###______",
+"_#A#______",
+"##_#######",
+"#$$$_$$$##",
+"#$$$#$$$##",
+"#$$$#$$$##",
+"##_###_###",
+"#$$$_$$$##",
+"#$$$_$$$##",
+"#$$$#$$$##",
+"##########",
+};
 
 // passing-a-multidimensional-variable-length-array-to-a-function
 // https://stackoverflow.com/questions/14548753/passing-a-multidimensional-variable-length-array-to-a-function
@@ -511,19 +531,31 @@ void update_puzzle(snake_t* snake, level_t *level, char map[][level->w],
       *DRAW_COLORS = 0x03;
     }
 
-    const char s[] = {'A'+(char)i, '\0'};
-    text(s, x + (snake->body[i].x*level->tw), y + (snake->body[i].y*level->th));
+    if('A'+(char)i == '_'){
+      text("-", x + (snake->body[i].x*level->tw), y + (snake->body[i].y*level->th));
+    } else {
+      const char s[] = {'A'+(char)i, '\0'};
+      text(s, x + (snake->body[i].x*level->tw), y + (snake->body[i].y*level->th));
+    }
   }
 
   // draw fruit
   for(int i = 0; i < basket->n; i++){
     if(!basket->eaten[i]){
-      *DRAW_COLORS = 0x4320;
-      blit(fruit_sprite,
+      *DRAW_COLORS = 0x02;
+
+      text("$",
            x+(basket->fruits[i].x*level->tw),
-           y+(basket->fruits[i].y*level->th),
-           level->tw, level->th,
-           BLIT_2BPP);
+           y+(basket->fruits[i].y*level->th));
+      /* rect(x+(basket->fruits[i].x*level->tw), */
+      /*      y+(basket->fruits[i].y*level->th), */
+      /*      level->tw, level->th); */
+
+      /* blit(fruit_sprite, */
+      /*      x+(basket->fruits[i].x*level->tw), */
+      /*      y+(basket->fruits[i].y*level->th), */
+      /*      level->tw, level->th, */
+      /*      BLIT_2BPP); */
     }
   }
 
@@ -646,9 +678,9 @@ void start() {
   /* tracef("%d %d", sizeof(char*), sizeof(u64*)); */
   /* tracef("%d %d\n", FALSE, TRUE); */
 
-  /* state = MAIN_MENU; */
-  state = LEVEL;
-  current_level = 9;
+  state = MAIN_MENU;
+  /* state = LEVEL; */
+  /* current_level = 15; */
 
   // EN4 - https://lospec.com/palette-list/en4
   /* PALETTE[0] = 0xfbf7f3; */
@@ -688,6 +720,16 @@ void start() {
   level10.w = LEVEL10_W;
   level10.tw = 8;
   level10.th = 8;
+
+  level12.h = LEVEL12_H;
+  level12.w = LEVEL12_W;
+  level12.tw = 8;
+  level12.th = 8;
+
+  level14.h = LEVEL14_H;
+  level14.w = LEVEL14_W;
+  level14.tw = 8;
+  level14.th = 8;
 }
 
 void update_main_menu(){
@@ -841,6 +883,8 @@ void update_level() {
 
     /*** initialize current_level 1 **/
     if (level0_score == 2 ){
+      level0_score = 0;
+
       // next current_level
       current_level = 1;
 
@@ -871,10 +915,10 @@ void update_level() {
   }
   else if (current_level == 3) {
     *DRAW_COLORS = 0x0032;
-    text("press:", 21, 30);
-    text(" Z to undo", 21, 50);
-    text(" X to reset level", 21, 70);
-    text(" R to reload game", 21, 90);
+    text("press:", 10, 30);
+    text(" Z to undo", 10, 50);
+    text(" X to reset level", 10, 70);
+    text(" R to reload game", 10, 90);
 
 
     if ((frame_count % 60) < 30) {
@@ -939,7 +983,8 @@ void update_level() {
   }
   else if(current_level == 9) {
     *DRAW_COLORS = 0x0032;
-    text("pigs get\nslaughtered", 35, 50);
+    text("treasure box", 40, 50);
+    // pigs get\nslaughtered
 
     if ((frame_count % 60) < 30) {
       *DRAW_COLORS = 0x0001;
@@ -951,7 +996,6 @@ void update_level() {
     if (just_pressed & BUTTON_1) { // x just pressed
       current_level = 10;
 
-      /* initialize 8 */
       init_level(&level10, level10_map, &snake, &basket, &history);
     }
   }
@@ -960,7 +1004,7 @@ void update_level() {
   }
   else if(current_level == 11) {
     *DRAW_COLORS = 0x0032;
-    text("hmmm", 30, 50);
+    text("bulls make money,\nbears make money,\n...", 12, 50);
 
     if ((frame_count % 60) < 30) {
       *DRAW_COLORS = 0x0001;
@@ -970,19 +1014,50 @@ void update_level() {
     text("X to continue", 30, 130);
 
     if (just_pressed & BUTTON_1) { // x just pressed
-      current_level = 10;
+      current_level = 12;
 
-      /* initialize 8 */
-      init_level(&level10, level10_map, &snake, &basket, &history);
+      init_level(&level12, level12_map, &snake, &basket, &history);
     }
   }
   else if(current_level == 12) {
+    update_puzzle(&snake, &level12, level12_map, &basket, &history);
   }
   else if(current_level == 13) {
+    *DRAW_COLORS = 0x0032;
+    text("odd 4 square", 30, 50);
+
+    if ((frame_count % 60) < 30) {
+      *DRAW_COLORS = 0x0001;
+    } else {
+      *DRAW_COLORS = 0x0003;
+    }
+    text("X to continue", 30, 130);
+
+    if (just_pressed & BUTTON_1) { // x just pressed
+      current_level = 14;
+
+      init_level(&level14, level14_map, &snake, &basket, &history);
+    }
   }
   else if(current_level == 14) {
+    update_puzzle(&snake, &level14, level14_map, &basket, &history);
   }
   else if(current_level == 15) {
+    *DRAW_COLORS = 0x0032;
+    text("Congratulations!\nYou have solved\nthe puzzles.", 15, 50);
+
+    if ((frame_count % 60) < 30) {
+      *DRAW_COLORS = 0x0001;
+    } else {
+      *DRAW_COLORS = 0x0003;
+    }
+    text("X to continue", 30, 130);
+
+    if (just_pressed & BUTTON_1) { // x just pressed
+      current_level = 0;
+
+      state = MAIN_MENU;
+    }
   }
   else {
     state = MAIN_MENU;

@@ -589,6 +589,8 @@ void update_puzzle(snake_t* snake, level_t *level, char map[][level->w],
        0 <= next_y && next_y < level->h) &&
       map[next_y][next_x] != '#'){
 
+    snake->direction = (point_t){0,0};
+
     // body collision
     u8 head_body_collision = FALSE;
     for(u16 i = 1; i < snake->length-1; i++){ // tail can swap with head
@@ -652,12 +654,25 @@ void update_puzzle(snake_t* snake, level_t *level, char map[][level->w],
         current_level++;
         free_fruit_basket(basket);
         free_snake(snake);
+        free_history(history);
+
+        // HACK way to initial the snake level at the end of the game
+        if(current_level == 15) {
+
+          // create snake
+          init_snake(snake, 3);
+          snake->body[0] = (point_t){2,0};
+          snake->body[1] = (point_t){1,0};
+          snake->body[2] = (point_t){0,0};
+          snake->direction = (point_t){1,0};
+
+          // make level0_fruit
+          level0_fruit.x = rand()%10;
+          level0_fruit.y = rand()%10;
+        }
       }
     }
   }
-
-  snake->direction = (point_t){0,0};
-
 
   // undo and reset
   if (just_pressed & BUTTON_2) {
@@ -679,8 +694,20 @@ void start() {
   /* tracef("%d %d\n", FALSE, TRUE); */
 
   state = MAIN_MENU;
-  /* state = LEVEL; */
-  /* current_level = 15; */
+  /*
+  state = LEVEL;
+  current_level = 15;
+
+          init_snake(&snake, 3);
+          snake.body[0] = (point_t){2,0};
+          snake.body[1] = (point_t){1,0};
+          snake.body[2] = (point_t){0,0};
+          snake.direction = (point_t){1,0};
+
+          // make level0_fruit
+          level0_fruit.x = rand()%10;
+          level0_fruit.y = rand()%10;
+*/
 
   // EN4 - https://lospec.com/palette-list/en4
   /* PALETTE[0] = 0xfbf7f3; */
@@ -737,7 +764,7 @@ void update_main_menu(){
   const u8 just_pressed = *GAMEPAD1 & (*GAMEPAD1 ^ prev_key_state);
 
   *DRAW_COLORS = 0x0024;
-  text("snakery", 50, 50);
+  text("snakery", 53, 50);
   *DRAW_COLORS = 0x0002;
   text("arrow keys to move", 8, 100);
 
@@ -752,18 +779,9 @@ void update_main_menu(){
     /* trace("button 1"); */
     /* prev_state = MAIN_MENU; */
     state = LEVEL;
+    current_level = 2;
 
-    /*** initialize current_level 0 ***/
-    // create snake
-    init_snake(&snake, 3);
-    snake.body[0] = (point_t){2,0};
-    snake.body[1] = (point_t){1,0};
-    snake.body[2] = (point_t){0,0};
-    snake.direction = (point_t){1,0};
-
-    // make level0_fruit
-    level0_fruit.x = rand()%10;
-    level0_fruit.y = rand()%10;
+    init_level(&level2, level2_map, &snake, &basket, &history);
   }
 
   /* if (just_pressed & BUTTON_2){ // z just pressed */
@@ -788,36 +806,168 @@ void update_level() {
   const u8 just_pressed = *GAMEPAD1 & (*GAMEPAD1 ^ prev_key_state);
 
   if (current_level == 0) { // classic snake
-    /*** input ***/
-    if (just_pressed & BUTTON_UP){
-      if(snake.direction.y == 0 &&
-         (snake.length > 1 &&
-          wrap(snake.body[0].y-1, 20) != snake.body[1].y)){
-        snake.direction = (point_t){0,-1};
-      }
-    }
+  }
+  else if (current_level == 1) { // how about a puzzle game instead?
+    /* *DRAW_COLORS = 0x0032; */
+    /* text("how about a\npuzzle game\n instead?  ", 35, 50); */
 
-    if (just_pressed & BUTTON_DOWN) {
-      if(snake.direction.y == 0 &&
-         (snake.length > 1 &&
-          wrap(snake.body[0].y+1, 20) != snake.body[1].y)){
-        snake.direction = (point_t){0,1};
-      }
+    /* if ((frame_count % 60) < 30) { */
+    /*   *DRAW_COLORS = 0x0001; */
+    /* } else { */
+    /*   *DRAW_COLORS = 0x0003; */
+    /* } */
+    /* text("X to continue", 30, 130); */
+
+    /* if (just_pressed & BUTTON_1) { // x just pressed */
+    /*   current_level = 2; */
+
+    /*   /\* initialize current_level 2 *\/ */
+    /*   init_level(&level2, level2_map, &snake, &basket, &history); */
+    /* } */
+  }
+  else if (current_level == 2) { // puzzle1, easy as CAB
+    update_puzzle(&snake, &level2, level2_map, &basket, &history);
+  }
+  else if (current_level == 3) {
+    *DRAW_COLORS = 0x0032;
+    text("press:", 10, 30);
+    text(" Z to undo", 10, 50);
+    text(" X to reset level", 10, 70);
+    text(" R to reload game", 10, 90);
+
+
+    if ((frame_count % 60) < 30) {
+      *DRAW_COLORS = 0x0001;
+    } else {
+      *DRAW_COLORS = 0x0003;
     }
-    if (just_pressed & BUTTON_LEFT) {
-      if(snake.direction.x == 0 &&
-         (snake.length > 1 &&
-          wrap(snake.body[0].x-1, 20) != snake.body[1].x)){
-        snake.direction = (point_t){-1, 0};
-      }
+    text("X to continue", 30, 130);
+
+    if (just_pressed & BUTTON_1) { // x just pressed
+      current_level = 4;
+
+      /* initialize current_level 4 */
+
+      init_level(&level4, level4_map, &snake, &basket, &history);
     }
-    if (just_pressed & BUTTON_RIGHT) {
-      if(snake.direction.x == 0 &&
-         (snake.length > 1 &&
-          wrap(snake.body[0].x+1, 20) != snake.body[1].x)){
-        snake.direction = (point_t){1, 0};
-      }
+  }
+  else if (current_level == 4) {
+    update_puzzle(&snake, &level4, level4_map, &basket, &history);
+  }
+  else if (current_level == 5) {
+    *DRAW_COLORS = 0x0032;
+    text("ouroboros", 45, 50);
+
+    if ((frame_count % 60) < 30) {
+      *DRAW_COLORS = 0x0001;
+    } else {
+      *DRAW_COLORS = 0x0003;
     }
+    text("X to continue", 30, 130);
+
+    if (just_pressed & BUTTON_1) { // x just pressed
+      current_level = 6;
+
+      /* initialize current_level 6 */
+      init_level(&level6, level6_map, &snake, &basket, &history);
+    }
+  }
+  else if (current_level == 6) {
+    update_puzzle(&snake, &level6, level6_map, &basket, &history);
+  }
+  else if (current_level == 7) {
+    *DRAW_COLORS = 0x0032;
+    text("fruity loop", 35, 50);
+
+    if ((frame_count % 60) < 30) {
+      *DRAW_COLORS = 0x0001;
+    } else {
+      *DRAW_COLORS = 0x0003;
+    }
+    text("X to continue", 30, 130);
+
+    if (just_pressed & BUTTON_1) { // x just pressed
+      current_level = 8;
+
+      /* initialize 8 */
+      init_level(&level8, level8_map, &snake, &basket, &history);
+    }
+  }
+  else if(current_level == 8) {
+    update_puzzle(&snake, &level8, level8_map, &basket, &history);
+  }
+  else if(current_level == 9) {
+    *DRAW_COLORS = 0x0032;
+    text("treasure box", 30, 50);
+    // pigs get\nslaughtered
+
+    if ((frame_count % 60) < 30) {
+      *DRAW_COLORS = 0x0001;
+    } else {
+      *DRAW_COLORS = 0x0003;
+    }
+    text("X to continue", 30, 130);
+
+    if (just_pressed & BUTTON_1) { // x just pressed
+      current_level = 10;
+
+      init_level(&level10, level10_map, &snake, &basket, &history);
+    }
+  }
+  else if(current_level == 10) {
+    update_puzzle(&snake, &level10, level10_map, &basket, &history);
+  }
+  else if(current_level == 11) {
+    *DRAW_COLORS = 0x0032;
+    text("bulls make money,\nbears make money,\n...", 12, 50);
+
+    if ((frame_count % 60) < 30) {
+      *DRAW_COLORS = 0x0001;
+    } else {
+      *DRAW_COLORS = 0x0003;
+    }
+    text("X to continue", 30, 130);
+
+    if (just_pressed & BUTTON_1) { // x just pressed
+      current_level = 12;
+
+      init_level(&level12, level12_map, &snake, &basket, &history);
+    }
+  }
+  else if(current_level == 12) {
+    update_puzzle(&snake, &level12, level12_map, &basket, &history);
+  }
+  else if(current_level == 13) {
+    *DRAW_COLORS = 0x0032;
+    text("odd 4 square", 30, 50);
+
+    if ((frame_count % 60) < 30) {
+      *DRAW_COLORS = 0x0001;
+    } else {
+      *DRAW_COLORS = 0x0003;
+    }
+    text("X to continue", 30, 130);
+
+    if (just_pressed & BUTTON_1) { // x just pressed
+      current_level = 14;
+
+      init_level(&level14, level14_map, &snake, &basket, &history);
+    }
+  }
+  else if(current_level == 14) {
+    update_puzzle(&snake, &level14, level14_map, &basket, &history);
+  }
+  else if(current_level == 15) {
+
+    *DRAW_COLORS = 0x0032;
+    text("Congratulations!", 15, 50);
+
+    if ((frame_count % 60) < 30) {
+      *DRAW_COLORS = 0x0001;
+    } else {
+      *DRAW_COLORS = 0x0003;
+    }
+    text("X to continue", 30, 130);
 
     // draw level0_fruit
     *DRAW_COLORS = 0x4320;
@@ -881,182 +1031,45 @@ void update_level() {
       }
     }
 
-    /*** initialize current_level 1 **/
-    if (level0_score == 2 ){
-      level0_score = 0;
-
-      // next current_level
-      current_level = 1;
-
-      free_fruit_basket(&basket);
-      free_snake(&snake);
+    /*** input ***/
+    if (just_pressed & BUTTON_UP){
+      if(snake.direction.y == 0 &&
+         (snake.length > 1 &&
+          wrap(snake.body[0].y-1, 20) != snake.body[1].y)){
+        snake.direction = (point_t){0,-1};
+      }
     }
-  }
-  else if (current_level == 1) { // how about a puzzle game instead?
-    *DRAW_COLORS = 0x0032;
-    text("how about a\npuzzle game\n instead?  ", 35, 50);
 
-    if ((frame_count % 60) < 30) {
-      *DRAW_COLORS = 0x0001;
-    } else {
-      *DRAW_COLORS = 0x0003;
+    if (just_pressed & BUTTON_DOWN) {
+      if(snake.direction.y == 0 &&
+         (snake.length > 1 &&
+          wrap(snake.body[0].y+1, 20) != snake.body[1].y)){
+        snake.direction = (point_t){0,1};
+      }
     }
-    text("X to continue", 30, 130);
+    if (just_pressed & BUTTON_LEFT) {
+      if(snake.direction.x == 0 &&
+         (snake.length > 1 &&
+          wrap(snake.body[0].x-1, 20) != snake.body[1].x)){
+        snake.direction = (point_t){-1, 0};
+      }
+    }
+    if (just_pressed & BUTTON_RIGHT) {
+      if(snake.direction.x == 0 &&
+         (snake.length > 1 &&
+          wrap(snake.body[0].x+1, 20) != snake.body[1].x)){
+        snake.direction = (point_t){1, 0};
+      }
+    }
 
+    // go back to main menu
     if (just_pressed & BUTTON_1) { // x just pressed
-      current_level = 2;
-
-      /* initialize current_level 2 */
-      init_level(&level2, level2_map, &snake, &basket, &history);
-    }
-  }
-  else if (current_level == 2) { // puzzle1, easy as CAB
-    update_puzzle(&snake, &level2, level2_map, &basket, &history);
-  }
-  else if (current_level == 3) {
-    *DRAW_COLORS = 0x0032;
-    text("press:", 10, 30);
-    text(" Z to undo", 10, 50);
-    text(" X to reset level", 10, 70);
-    text(" R to reload game", 10, 90);
-
-
-    if ((frame_count % 60) < 30) {
-      *DRAW_COLORS = 0x0001;
-    } else {
-      *DRAW_COLORS = 0x0003;
-    }
-    text("X to continue", 30, 130);
-
-    if (just_pressed & BUTTON_1) { // x just pressed
-      current_level = 4;
-
-      /* initialize current_level 4 */
-
-      init_level(&level4, level4_map, &snake, &basket, &history);
-    }
-  }
-  else if (current_level == 4) {
-    update_puzzle(&snake, &level4, level4_map, &basket, &history);
-  }
-  else if (current_level == 5) {
-    *DRAW_COLORS = 0x0032;
-    text("ouroboros", 40, 50);
-
-    if ((frame_count % 60) < 30) {
-      *DRAW_COLORS = 0x0001;
-    } else {
-      *DRAW_COLORS = 0x0003;
-    }
-    text("X to continue", 30, 130);
-
-    if (just_pressed & BUTTON_1) { // x just pressed
-      current_level = 6;
-
-      /* initialize current_level 6 */
-      init_level(&level6, level6_map, &snake, &basket, &history);
-    }
-  }
-  else if (current_level == 6) {
-    update_puzzle(&snake, &level6, level6_map, &basket, &history);
-  }
-  else if (current_level == 7) {
-    *DRAW_COLORS = 0x0032;
-    text("fruity loop", 35, 50);
-
-    if ((frame_count % 60) < 30) {
-      *DRAW_COLORS = 0x0001;
-    } else {
-      *DRAW_COLORS = 0x0003;
-    }
-    text("X to continue", 30, 130);
-
-    if (just_pressed & BUTTON_1) { // x just pressed
-      current_level = 8;
-
-      /* initialize 8 */
-      init_level(&level8, level8_map, &snake, &basket, &history);
-    }
-  }
-  else if(current_level == 8) {
-    update_puzzle(&snake, &level8, level8_map, &basket, &history);
-  }
-  else if(current_level == 9) {
-    *DRAW_COLORS = 0x0032;
-    text("treasure box", 40, 50);
-    // pigs get\nslaughtered
-
-    if ((frame_count % 60) < 30) {
-      *DRAW_COLORS = 0x0001;
-    } else {
-      *DRAW_COLORS = 0x0003;
-    }
-    text("X to continue", 30, 130);
-
-    if (just_pressed & BUTTON_1) { // x just pressed
-      current_level = 10;
-
-      init_level(&level10, level10_map, &snake, &basket, &history);
-    }
-  }
-  else if(current_level == 10) {
-    update_puzzle(&snake, &level10, level10_map, &basket, &history);
-  }
-  else if(current_level == 11) {
-    *DRAW_COLORS = 0x0032;
-    text("bulls make money,\nbears make money,\n...", 12, 50);
-
-    if ((frame_count % 60) < 30) {
-      *DRAW_COLORS = 0x0001;
-    } else {
-      *DRAW_COLORS = 0x0003;
-    }
-    text("X to continue", 30, 130);
-
-    if (just_pressed & BUTTON_1) { // x just pressed
-      current_level = 12;
-
-      init_level(&level12, level12_map, &snake, &basket, &history);
-    }
-  }
-  else if(current_level == 12) {
-    update_puzzle(&snake, &level12, level12_map, &basket, &history);
-  }
-  else if(current_level == 13) {
-    *DRAW_COLORS = 0x0032;
-    text("odd 4 square", 30, 50);
-
-    if ((frame_count % 60) < 30) {
-      *DRAW_COLORS = 0x0001;
-    } else {
-      *DRAW_COLORS = 0x0003;
-    }
-    text("X to continue", 30, 130);
-
-    if (just_pressed & BUTTON_1) { // x just pressed
-      current_level = 14;
-
-      init_level(&level14, level14_map, &snake, &basket, &history);
-    }
-  }
-  else if(current_level == 14) {
-    update_puzzle(&snake, &level14, level14_map, &basket, &history);
-  }
-  else if(current_level == 15) {
-    *DRAW_COLORS = 0x0032;
-    text("Congratulations!\nYou have solved\nthe puzzles.", 15, 50);
-
-    if ((frame_count % 60) < 30) {
-      *DRAW_COLORS = 0x0001;
-    } else {
-      *DRAW_COLORS = 0x0003;
-    }
-    text("X to continue", 30, 130);
-
-    if (just_pressed & BUTTON_1) { // x just pressed
-      current_level = 0;
 
       state = MAIN_MENU;
+
+      level0_score = 0;
+      free_fruit_basket(&basket);
+      free_snake(&snake);
     }
   }
   else {

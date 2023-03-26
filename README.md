@@ -26,6 +26,12 @@ w4 watch
 w4 watch --no-open
 ```
 
+Bundle for web:
+
+``` shell
+w4 bundle cart.wasm --title "Snakery" --html index.html
+```
+
 For more info about setting up WASM-4, see the [quickstart guide](https://wasm4.org/docs/getting-started/setup?code-lang=c#quickstart).
 
 ### convert png to pixel values
